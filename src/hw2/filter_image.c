@@ -46,7 +46,7 @@ image convolve_image(image im, image filter, int preserve)
                         }
                     }
                 }
-                set_pixel(result, i, j, 1, weighted_sum);
+                set_pixel(result, i, j, 0, weighted_sum);
             }
         }
     } else if (filter.c == im.c && preserve == 1) { // apply each channel of the filter to the corresponding channel of the image
@@ -76,7 +76,7 @@ image convolve_image(image im, image filter, int preserve)
                     float weighted_sum = 0;
                     for (int n = 0; n < filter.w; n++) {
                         for (int m = 0; m < filter.h; m++) {
-                            float filterpix = get_pixel(filter, n, m, 1);
+                            float filterpix = get_pixel(filter, n, m, 0);
                             float impix = get_pixel(im, i - (filter.w - 1)/ 2 + n, j - (filter.h-1) / 2 + m, c);
                             weighted_sum += filterpix * impix;
                         }
@@ -100,7 +100,7 @@ image convolve_image(image im, image filter, int preserve)
                         }
                     }
                 }
-                set_pixel(result, i, j, 1, weighted_sum);
+                set_pixel(result, i, j, 0, weighted_sum);
             }
         }
     } 
@@ -155,7 +155,7 @@ image make_gaussian_filter(float sigma)
             int x = i - (size / 2);
             int y = j - (size / 2);
             float val = (1/(2 * M_PI * sigma * sigma)) * exp(-1 * ( (x*x+y*y) / (2*sigma*sigma) ));
-            set_pixel(filter, i, j, 1, val);
+            set_pixel(filter, i, j, 0, val);
         }
     }
     l1_normalize(filter);
@@ -257,6 +257,24 @@ image *sobel_image(image im)
 
 image colorize_sobel(image im)
 {
-    // TODO
-    return make_image(1,1,1);
+    image result = make_image(im.w, im.h, im.c);
+    image* sobel = sobel_image(im);
+
+    feature_normalize(sobel[0]);
+    feature_normalize(sobel[1]);
+
+    for (int i = 0; i < im.w; i++) {
+        for (int j = 0; j < im.h; j++) {
+            for (int k = 0; k < im.c; k++) {
+                // R
+                set_pixel(result, i, j, 0, get_pixel(sobel[0], i, j, 0));
+                // G
+                set_pixel(result, i, j, 1, get_pixel(sobel[0], i, j, 0));
+                // B
+                set_pixel(result, i, j, 2, get_pixel(sobel[1], i, j, 0));
+            }
+        }
+    }
+
+    return result;
 }
