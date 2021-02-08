@@ -6,6 +6,16 @@
 #include "image.h"
 #include "matrix.h"
 
+// helper for match_descriptors
+int array_contains(int* array, int n, int val) {
+    for (int i = 0; i < n; i++) {
+        if (array[i] == val) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 // Comparator for matches
 // const void *a, *b: pointers to the matches to compare.
 // returns: result of comparison, 0 if same, 1 if a > b, -1 if a < b.
@@ -117,8 +127,11 @@ image find_and_draw_matches(image a, image b, float sigma, float thresh, int nms
 // returns: l1 distance between arrays (sum of absolute differences).
 float l1_distance(float *a, float *b, int n)
 {
-    // TODO: return the correct number.
-    return 0;
+    float norm = 0;
+    for (int i = 0; i < n; i++) {
+        norm += fabs(a[i] - b[i]);
+    }
+    return norm;
 }
 
 // Finds best matches between descriptors of two images.
@@ -137,12 +150,20 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
     for(j = 0; j < an; ++j){
         // TODO: for every descriptor in a, find best match in b.
         // record ai as the index in *a and bi as the index in *b.
-        int bind = 0; // <- find the best match
+        float min_distance = l1_distance(a[j].data, b[0].data, a[j].n);
+        int bind = 0;
+        for (i = 1; i < bn; i++) {
+            float local_distance = l1_distance(a[j].data, b[i].data, a[j].n);
+            if (local_distance < min_distance) {
+                min_distance = local_distance;
+                bind = i;
+            }
+        }
         m[j].ai = j;
         m[j].bi = bind; // <- should be index in b.
         m[j].p = a[j].p;
         m[j].q = b[bind].p;
-        m[j].distance = 0; // <- should be the smallest L1 distance!
+        m[j].distance = min_distance; // <- should be the smallest L1 distance!
     }
 
     int count = 0;
@@ -153,6 +174,19 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
     // Each point should only be a part of one match.
     // Some points will not be in a match.
     // In practice just bring good matches to front of list, set *mn.
+    qsort(m, an, sizeof(match), &match_compare);
+    for (i = 0; i < an; i++) {
+        if(array_contains(seen, count, m[i].bi)) {
+            for (j = i; j < an - 1; j++) {
+                m[j] = m[j+1];
+            }
+            i--;
+            an--;
+        } else {
+            seen[count] = m[i].bi;
+            count++;
+        }
+    }
     *mn = count;
     free(seen);
     return m;
