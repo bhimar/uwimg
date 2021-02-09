@@ -202,7 +202,11 @@ point project_point(matrix H, point p)
     // TODO: project point p with homography H.
     // Remember that homogeneous coordinates are equivalent up to scalar.
     // Have to divide by.... something...
-    point q = make_point(0, 0);
+    c.data[0][0] = p.x;
+    c.data[1][0] = p.y;
+    c.data[2][0] = 1;
+    matrix result = matrix_mult_matrix(H, c);
+    point q = make_point(result.data[0][0] / result.data[2][0], result.data[1][0] / result.data[2][0]);
     return q;
 }
 
@@ -212,7 +216,7 @@ point project_point(matrix H, point p)
 float point_distance(point p, point q)
 {
     // TODO: should be a quick one.
-    return 0;
+    return sqrt(pow(fabs(p.x - q.x),2) + pow(fabs(p.y - q.y),2));
 }
 
 // Count number of inliers in a set of matches. Should also bring inliers
@@ -231,6 +235,22 @@ int model_inliers(matrix H, match *m, int n, float thresh)
     // TODO: count number of matches that are inliers
     // i.e. distance(H*p, q) < thresh
     // Also, sort the matches m so the inliers are the first 'count' elements.
+    
+    for (i = 0; i < n; i++) {
+        point p = m[i].p;
+        point q1 = project_point(H, p);
+        float distance = point_distance(q1, m[i].q);
+        if (distance >= thresh) {
+            for (int j = i; j < n - 1; j++) {
+                m[j] = m[j+1];
+            }
+            i--;
+            n--; 
+        } else {
+            count++;
+        }
+    }
+
     return count;
 }
 
@@ -258,10 +278,15 @@ matrix compute_homography(match *matches, int n)
         double y  = matches[i].p.y;
         double yp = matches[i].q.y;
         // TODO: fill in the matrices M and b.
-
+        double row1[] = {x, y, 1, 0, 0, 0, -x * xp, -y * xp};
+        double row2[] = {0, 0, 0, x, y, 1, -x * yp, -y * yp};
+        memcpy(M.data[i*2], row1, sizeof(row1));
+        memcpy(M.data[i*2 + 1], row2, sizeof(row2));
+        b.data[i*2][0] = xp;
+        b.data[i*2+1][0] = yp;
     }
     matrix a = solve_system(M, b);
-    free_matrix(M); free_matrix(b); 
+    free_matrix(M); free_matrix(b);
 
     // If a solution can't be found, return empty matrix;
     matrix none = {0};
@@ -269,8 +294,11 @@ matrix compute_homography(match *matches, int n)
 
     matrix H = make_matrix(3, 3);
     // TODO: fill in the homography H based on the result in a.
-
-
+    for (i = 0; i < 8; i++) {
+        H.data[i/3][i%3] = a.data[i][0];
+    }
+    H.data[2][2] = 1;
+    
     free_matrix(a);
     return H;
 }
