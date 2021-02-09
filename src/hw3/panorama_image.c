@@ -241,9 +241,11 @@ int model_inliers(matrix H, match *m, int n, float thresh)
         point q1 = project_point(H, p);
         float distance = point_distance(q1, m[i].q);
         if (distance >= thresh) {
+            match temp = m[i];
             for (int j = i; j < n - 1; j++) {
                 m[j] = m[j+1];
             }
+            m[n - 1] = temp;
             i--;
             n--; 
         } else {
@@ -260,6 +262,12 @@ int model_inliers(matrix H, match *m, int n, float thresh)
 void randomize_matches(match *m, int n)
 {
     // TODO: implement Fisher-Yates to shuffle the array.
+    for (int i = n-1; i >= 1; i--){
+        int j = (rand() % (i+1));
+        match temp = m[j];
+        m[j] = m[i];
+        m[i] = temp;
+    }
 }
 
 // Computes homography between two images given matching pixels.
@@ -325,6 +333,22 @@ matrix RANSAC(match *m, int n, float thresh, int k, int cutoff)
     //         if it's better than the cutoff:
     //             return it immediately
     // if we get to the end return the best homography
+    for (e = 0; e < k; e++) {
+        randomize_matches(m, n);
+        // compute homography
+        matrix H_local = compute_homography(m, 4);
+        int inliers = model_inliers(H_local, m, n, thresh);
+        if(inliers > best) { // if new homography is better than old
+            // compute updated homography using inliers
+            Hb = compute_homography(m, inliers);
+            // record
+            best = inliers;
+
+            if (inliers > cutoff) { // better than cutoff
+                return Hb;
+            }
+        }
+    }
     return Hb;
 }
 
