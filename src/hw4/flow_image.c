@@ -41,14 +41,61 @@ void draw_line(image im, float x, float y, float dx, float dy)
     }
 }
 
+
+// helper for make_integral_image
+float computePixel(image im, int x, int y, int c) {
+    if (x >= 0 && y >= 0) {
+        return get_pixel(im, x, y, c);
+    } else {
+        return 0.0;
+    }
+}
+
 // Make an integral image or summed area table from an image
 // image im: image to process
 // returns: image I such that I[x,y] = sum{i<=x, j<=y}(im[i,j])
 image make_integral_image(image im)
 {
-    image integ = make_image(im.w, im.h, im.c);
+    image I = make_image(im.w, im.h, im.c);
     // TODO: fill in the integral image
-    return integ;
+    for (int c = 0; c < im.c; c++) {
+        for (int i = 0; i < im.w; i++) {
+            for (int j = 0; j < im.h; j++) {
+                float val = computePixel(im, i, j, c) + computePixel(I, i, j-1, c) + computePixel(I, i-1, j, c) - computePixel(I, i - 1, j - 1, c);
+                set_pixel(I, i, j, c, val);
+            }
+        }
+    }
+    return I;
+}
+
+// helper struct for box_filter_image
+typedef struct coord {
+    int x;
+    int y;
+} coord;
+
+coord make_coord(image im, int x, int y) {
+    coord c;
+    c.x = x;
+    c.y = y;
+
+    if (x < 0) {
+        c.x = 0;
+    }
+    if (y < 0) {
+        c.y = 0;
+    }
+
+    if (x >= im.w) {
+        c.x = im.w - 1;
+    }
+
+    if (y >= im.h) {
+        c.y = im.h - 1;
+    }
+
+    return c;
 }
 
 // Apply a box filter to an image using an integral image for speed
@@ -58,9 +105,22 @@ image make_integral_image(image im)
 image box_filter_image(image im, int s)
 {
     int i,j,k;
-    image integ = make_integral_image(im);
+    image I = make_integral_image(im);
     image S = make_image(im.w, im.h, im.c);
     // TODO: fill in S using the integral image.
+    for (int c = 0; c < im.c; c++) {
+        for (int i = 0; i < im.w; i++) {
+            for (int j = 0; j < im.h; j++) {
+                coord A = make_coord(im, i - (s-1)/2 - 1, j-(s-1)/2 - 1);
+                coord B = make_coord(im, i - (s-1)/2 - 1, j + (s-1)/2);
+                coord C = make_coord(im, i + (s-1)/2, j - (s-1)/2 - 1);
+                coord D = make_coord(im, i + (s-1)/2, j + (s-1)/2);
+                float val = get_pixel(I, D.x, D.y, c) + get_pixel(I, A.x, A.y, c) - get_pixel(I, B.x, B.y, c) - get_pixel(I, C.x, C.y, c);
+                val = val / ((D.x - A.x)*(D.y - A.y));
+                set_pixel(S, i, j, c, val); 
+            }
+        }
+    }
     return S;
 }
 
