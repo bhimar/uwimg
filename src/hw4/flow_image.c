@@ -121,6 +121,7 @@ image box_filter_image(image im, int s)
             }
         }
     }
+    free_image(I);
     return S;
 }
 
@@ -142,12 +143,31 @@ image time_structure_matrix(image im, image prev, int s)
 
     // TODO: calculate gradients, structure components, and smooth them
 
-    image S;
+    image S = make_image(im.w, im.h, 5);
+    image gx = make_gx_filter();
+    image gy = make_gy_filter();
+    image Ix = convolve_image(im, gx, 0);
+    image Iy = convolve_image(im, gy, 0);
+    for (int i = 0; i < im.w; i++) {
+        for (int j = 0; j < im.h; j++) {
+            set_pixel(S, i, j, 0, pow(get_pixel(Ix, i, j, 0),2) );
+            set_pixel(S, i, j, 1, pow(get_pixel(Iy, i, j, 0),2) );
+            set_pixel(S, i, j, 2, get_pixel(Ix, i, j, 0) * get_pixel(Iy, i, j, 0));
+            set_pixel(S, i, j, 3, -1 * get_pixel(Ix, i, j, 0) * (get_pixel(prev, i, j, 0) - get_pixel(im, i, j, 0)));
+            set_pixel(S, i, j, 4, -1 * get_pixel(Iy, i, j, 0) * (get_pixel(prev, i, j, 0) - get_pixel(im, i, j, 0)));
+        }
+    }
 
+    image Sfilt = box_filter_image(S, s);
+    free_image(S);
+    free_image(gx);
+    free_image(gy);
+    free_image(Ix);
+    free_image(Iy);
     if(converted){
         free_image(im); free_image(prev);
     }
-    return S;
+    return Sfilt;
 }
 
 // Calculate the velocity given a structure image
@@ -169,6 +189,30 @@ image velocity_image(image S, int stride)
             // TODO: calculate vx and vy using the flow equation
             float vx = 0;
             float vy = 0;
+
+            M.data[0][0] = Ixx;
+            M.data[0][1] = Ixy;
+            M.data[1][0] = Ixy;
+            M.data[1][1] = Iyy;
+
+            matrix b = make_matrix(2,1);
+            b.data[0][0] = -1 * Ixt;
+            b.data[1][0] = -1 * Iyt;
+
+            // matrix V = solve_system(M, b);
+            matrix Minv = matrix_invert(M);
+            if (Minv.rows == 0) {
+                vx = 0;
+                vy = 0;
+            } else {
+                matrix V = matrix_mult_matrix(Minv, b);
+                vx = V.data[0][0];
+                vy = V.data[1][0];
+                free_matrix(V);
+                free_matrix(Minv);
+            }
+
+            free_matrix(b);
 
             set_pixel(v, i/stride, j/stride, 0, vx);
             set_pixel(v, i/stride, j/stride, 1, vy);
