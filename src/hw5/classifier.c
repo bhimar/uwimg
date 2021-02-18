@@ -16,17 +16,26 @@ void activate_matrix(matrix m, ACTIVATION a)
             double x = m.data[i][j];
             if(a == LOGISTIC){
                 // TODO
+                m.data[i][j] = (1.0)/(1.0 + exp(x * -1.0));
             } else if (a == RELU){
                 // TODO
+                m.data[i][j] = MAX(0, x); 
             } else if (a == LRELU){
                 // TODO
+                if (x < 0) {
+                    m.data[i][j] = 0.1 * x;
+                }
             } else if (a == SOFTMAX){
                 // TODO
+                m.data[i][j] = exp(x);
             }
             sum += m.data[i][j];
         }
         if (a == SOFTMAX) {
             // TODO: have to normalize by sum if we are using SOFTMAX
+            for (j = 0; j < m.cols; j++) {
+                m.data[i][j] /= sum;
+            }
         }
     }
 }
@@ -41,8 +50,28 @@ void gradient_matrix(matrix m, ACTIVATION a, matrix d)
     int i, j;
     for(i = 0; i < m.rows; ++i){
         for(j = 0; j < m.cols; ++j){
-            double x = m.data[i][j];
+            double fx = m.data[i][j];
             // TODO: multiply the correct element of d by the gradient
+            double grad = 1.0;
+            if(a == LOGISTIC){
+                // TODO
+                grad = fx * (1.0 - fx);
+            } else if (a == RELU){
+                // TODO
+                if (fx > 0) {
+                    grad = 1.0;
+                } else {
+                    grad = 0;
+                }
+            } else if (a == LRELU){
+                // TODO
+                if (fx > 0) {
+                    grad = 1.0;
+                } else {
+                    grad = 0.1;
+                }
+            }
+            d.data[i][j] *= grad;
         }
     }
 }
@@ -58,8 +87,8 @@ matrix forward_layer(layer *l, matrix in)
 
 
     // TODO: fix this! multiply input by weights and apply activation function.
-    matrix out = make_matrix(in.rows, l->w.cols);
-
+    matrix out = matrix_mult_matrix(in, l->w);
+    activate_matrix(out, l->activation);
 
     free_matrix(l->out);// free the old output
     l->out = out;       // Save the current output for gradient calculation
@@ -75,18 +104,24 @@ matrix backward_layer(layer *l, matrix delta)
     // 1.4.1
     // delta is dL/dy
     // TODO: modify it in place to be dL/d(xw)
-
+    gradient_matrix(l->out, l->activation, delta);
 
     // 1.4.2
     // TODO: then calculate dL/dw and save it in l->dw
     free_matrix(l->dw);
-    matrix dw = make_matrix(l->w.rows, l->w.cols); // replace this
+    // matrix dw = make_matrix(l->w.rows, l->w.cols); // replace this
+    matrix xt = transpose_matrix(l->in);
+    matrix dw = matrix_mult_matrix(xt, delta);
     l->dw = dw;
+    free_matrix(xt);
 
     
     // 1.4.3
     // TODO: finally, calculate dL/dx and return it.
-    matrix dx = make_matrix(l->in.rows, l->in.cols); // replace this
+    // matrix dx = make_matrix(l->in.rows, l->in.cols); // replace this
+    matrix wt = transpose_matrix(l->w);
+    matrix dx = matrix_mult_matrix(delta, wt);
+    free_matrix(wt);
 
     return dx;
 }
@@ -101,10 +136,13 @@ void update_layer(layer *l, double rate, double momentum, double decay)
     // TODO:
     // Calculate Δw_t = dL/dw_t - λw_t + mΔw_{t-1}
     // save it to l->v
-
+    matrix first_two = axpy_matrix(-1 * decay, l->w, l->dw);
+    matrix dw_t = axpy_matrix(momentum, l->v, first_two);
+    free_matrix(first_two);
+    l->v = dw_t;
 
     // Update l->w
-
+    l->w = axpy_matrix(rate, dw_t, l->w);
 
     // Remember to free any intermediate results to avoid memory leaks
 
