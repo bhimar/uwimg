@@ -284,21 +284,88 @@ void train_model(model m, data d, int batch, int iters, double rate, double mome
 //
 // 5.2.2.1 Why might we be interested in both training accuracy and testing accuracy? What do these two numbers tell us about our current model?
 // TODO
+// The training accuracy will tell us how closely our model fits the training data. If this is very high, that MAY indicate that our model is trained thoroughly.
+// The testing accuracy will tell us how well our model generalizes on data that it has never seen before. This is what we REALLY want to be high.
+// If we find that training accuracy is very high, but testing accuracy is low, this indicates overfitting because our model fits the training data very well but
+// if does not generalize well. From there we can update the model by increasing regularization or decreasing complexity in the design.
 //
 // 5.2.2.2 Try varying the model parameter for learning rate to different powers of 10 (i.e. 10^1, 10^0, 10^-1, 10^-2, 10^-3) and training the model. What patterns do you see and how does the choice of learning rate affect both the loss during training and the final model accuracy?
 // TODO
+// LR   |   Training Loss Observations  | Final Train Accuracy  |   Final Test Accuracy
+// -----|-------------------------------|-----------------------|-----------------------
+// 0.001|   loss decreasing steadily    |  0.8582               |   0.8679
+// 0.01 |   loss decreasing steadily    |  0.9032               |   0.9089
+// 0.1  |   loss decreasing steadily    |  0.9232               |   0.9209
+// 1    |   loss bounces up and down    |  0.8891               |   0.8861
+// 10   |   loss grows to nan           |  0.0987               |   0.098
+// 
+// Explanation:
+// Our training stopping condition is based on number of iterations, not loss or weight convergence. So, learning rate is an especially important parameter.
+// When the learning rate was 0.001 and 0.01 the loss was converging but the model trained less overall than the 0.1 learning rate because it was descending
+// gradients slower (when LR was 0.001 and 0.01). When we increased LR to 1 and 10, we were descending gradients quickly, but we were overstepping due
+// to high learning rate, which made the loss go up and down when LR was 1 and completely diverge when LR was 10.
 //
 // 5.2.2.3 Try varying the parameter for weight decay to different powers of 10: (10^0, 10^-1, 10^-2, 10^-3, 10^-4, 10^-5). How does weight decay affect the final model training and test accuracy?
 // TODO
+// Note: using LR = 0.1 from previous experiment
+// Decay    | Final Train Accuracy  |   Final Test Accuracy
+// ---------|-----------------------|-----------------------
+// 0        |  0.9232               |   0.9209
+// 0.00001  |  0.9232               |   0.9209
+// 0.0001   |  0.9232               |   0.9209
+// 0.001    |  0.9231               |   0.9209
+// 0.01     |  0.9226               |   0.9207
+// 0.1      |  0.9193               |   0.9196
+// 1        |  0.8988               |   0.9049
+//
+// Explanation:
+// As we increase weight decay, we see that we have decreasing training and testing accuracy. We have similar training and testing accuracy
+// when weight decay is small (from 0 to 0.001). What I think this indicates is that this model does not need regularization, because biasing the
+// model to be less complex with higher weight decay seems to decrease performance. Even with 0 weight decay we have the best accuracy. We might
+// even benefit from increasing the complexity of the model.
 //
 // 5.2.3.1 Currently the model uses a logistic activation for the first layer. Try using a the different activation functions we programmed. How well do they perform? What's best?
 // TODO
+// Note: LR = 0.1 decay = 0.0
+// Activation    | Final Train Accuracy  |   Final Test Accuracy
+// --------------|-----------------------|-----------------------
+// Logistic      |  0.9431               |   0.9409
+// ReLU          |  0.9591               |   0.9508
+// Leaky ReLU    |  0.9593               |   0.9516
+// Softmax       |  0.0987               |   0.098
+// Linear        |  0.8941               |   0.8878
+//
+// Explanation:
+// The Leaky ReLU and ReLU activations performed the best. This is what I expected, as logistic and softmax are generally used for outputs, and linear is
+// mainly used for the prediction at the end of the network.
 //
 // 5.2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
 // TODO
+// Note: using LRELU
+// LR       | Final Train Accuracy  |   Final Test Accuracy
+// ---------|-----------------------|-----------------------
+// 0.001    |  0.6467               |   0.6545
+// 0.01     |  0.8859               |   0.8936
+// 0.1      |  0.9431               |   0.9409
+// 1        |  0.9543               |   0.9503
+// 10       |  0.2085               |   0.2105
+//
+// Explanation:
+// The best learning rate for this network was 1. I was actually surprised that it was 1 instead of a power of 10 less than 1.
+// We had faster loss convergence while increasing from 0.001 to 1, and the loss stayed high with LR 10.
 //
 // 5.2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
 // TODO
+// Note: LR = 1
+// Decay    | Final Train Accuracy  |   Final Test Accuracy
+// ---------|-----------------------|-----------------------
+// 0        |  0.                   |   0.9209
+// 0.00001  |  0.9232               |   0.9209
+// 0.0001   |  0.9232               |   0.9209
+// 0.001    |  0.9231               |   0.9209
+// 0.01     |  0.9226               |   0.9207
+// 0.1      |  0.9193               |   0.9196
+// 1        |  0.8988               |   0.9049
 //
 // 5.2.3.4 Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing error for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
 // TODO
