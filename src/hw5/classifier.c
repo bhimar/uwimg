@@ -350,7 +350,7 @@ void train_model(model m, data d, int batch, int iters, double rate, double mome
 // 1        |  0.0987               |   0.098
 //
 // Explanation:
-// The best learning rate for this network was 0.1. The loss diverged when LR got to 1 and higher. 
+// The best learning rate for this network was 0.1 with Training Accuracy 95.93% and Testing Accuracy 95.16%. The loss diverged when LR got to 1 and higher. 
 //
 // 5.2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
 // TODO
@@ -388,7 +388,7 @@ void train_model(model m, data d, int batch, int iters, double rate, double mome
 //
 // 5.3.2.1 How well does your network perform on the CIFAR dataset?
 // TODO
-// Note: Decay = 0.001, LR = 0.01, iters = 3000, same network architecture as previous question
+// Note: Decay = 0.001, iters = 3000, same network architecture as previous question
 // LR   | Train Acc | Test Acc
 // -----|-----------|---------
 // 0.1  |  0.4082   |   0.4017
