@@ -341,38 +341,66 @@ void train_model(model m, data d, int batch, int iters, double rate, double mome
 //
 // 5.2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
 // TODO
-// Note: using LRELU
+// Note: using LRELU, decay = 0
 // LR       | Final Train Accuracy  |   Final Test Accuracy
 // ---------|-----------------------|-----------------------
-// 0.001    |  0.6467               |   0.6545
-// 0.01     |  0.8859               |   0.8936
-// 0.1      |  0.9431               |   0.9409
-// 1        |  0.9543               |   0.9503
-// 10       |  0.2085               |   0.2105
+// 0.001    |  0.8629               |   0.8682
+// 0.01     |  0.9223               |   0.9257
+// 0.1      |  0.9593               |   0.9516
+// 1        |  0.0987               |   0.098
 //
 // Explanation:
-// The best learning rate for this network was 1. I was actually surprised that it was 1 instead of a power of 10 less than 1.
-// We had faster loss convergence while increasing from 0.001 to 1, and the loss stayed high with LR 10.
+// The best learning rate for this network was 0.1. The loss diverged when LR got to 1 and higher. 
 //
 // 5.2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
 // TODO
-// Note: LR = 1
+// Note: LR = 0.1
 // Decay    | Final Train Accuracy  |   Final Test Accuracy
 // ---------|-----------------------|-----------------------
-// 0        |  0.                   |   0.9209
-// 0.00001  |  0.9232               |   0.9209
-// 0.0001   |  0.9232               |   0.9209
-// 0.001    |  0.9231               |   0.9209
-// 0.01     |  0.9226               |   0.9207
-// 0.1      |  0.9193               |   0.9196
-// 1        |  0.8988               |   0.9049
+// 0        |  0.9593               |   0.9516
+// 0.00001  |  0.9590               |   0.9514
+// 0.0001   |  0.9606               |   0.9543
+// 0.001    |  0.9602               |   0.9533
+// 0.01     |  0.9592               |   0.9524
+// 0.1      |  0.9492               |   0.942
+// 1        |  0.9278               |   0.931
+//
+// Explanation:
+// Increasing weight decay up to 0.0001 improves testing accuracy. This indicates that the network by itself is too complex of a model,
+// so adding weight decay biases the model to be less complex, thus fitting to less noise. However, as we increase weight decay futher,
+// we see performance dropping, which indicates that we have penalized complexity too much.
 //
 // 5.2.3.4 Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing error for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
 // TODO
+// Note: LR = 0.1, first 2 layers use LRELU
+// Decay    | Final Train Accuracy  |   Final Test Accuracy
+// ---------|-----------------------|-----------------------
+// 0.0001   |  0.9813               |   0.9674
+// 0.001    |  0.9837               |   0.9705
+// 0.01     |  0.9802               |   0.9699
+// 0.1      |  0.9758               |   0.9662
+// 1        |  0.9391               |   0.9402
+//
+// Explanation:
+// The weight decay we needed for this model's best performance was 0.001, higher than the previous model. This makes sense, because we increased
+// the complexity of the model by adding another layer and more weights. So, we want to bias our model a bit more by penalizing complexity with
+// weight decay. However, increasing the weight decay even more penalizes complexity too much, so the performance decreases.
 //
 // 5.3.2.1 How well does your network perform on the CIFAR dataset?
 // TODO
+// Note: Decay = 0.001, LR = 0.01, iters = 3000, same network architecture as previous question
+// LR   | Train Acc | Test Acc
+// -----|-----------|---------
+// 0.1  |  0.4082   |   0.4017
+// 0.01 |  0.4607   |   0.4431
+// 0.001|  0.4006   |   0.4051
 //
+// Explanation:
+// I noticed that the loss did not change very much in a lot of the the iterations in the later part of training with LR = 0.1,
+// so I figured a more granular learning rate would get it closer to the true minimum. I decreased the learning rate to 0.01,
+// and this improved performance as shown. Decreasing learning rate farther did not improve performance, likely because it was 
+// descending gradient too slowly to reach minimum. CIFAR is a much more complex set than MNIST, so the performance is expected to be
+// much lower than in MNIST. My best performance was 46.07% Training Accuracy and 44.31% Testing Accuracy.
 
 
 
